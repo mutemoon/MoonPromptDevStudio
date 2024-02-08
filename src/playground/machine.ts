@@ -3,7 +3,7 @@ import { OpenAI } from "openai";
 import { produce } from "immer";
 
 const client = new OpenAI({
-  baseURL: "http://192.168.31.143:9090/v1",
+  baseURL: "http://47.116.115.158:9098/v1",
   apiKey: "YOUR_API_KEY",
   dangerouslyAllowBrowser: true,
 });

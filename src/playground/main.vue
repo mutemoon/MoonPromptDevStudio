@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import CodeViewer from "./components/CodeViewer.vue";
 import MaxLengthSelector from "./components/MaxLengthSelector.vue";
 import ModelSelector from "./components/ModelSelector.vue";
 import PresetActions from "./components/PresetActions.vue";
-import PresetSave from "./components/PresetSave.vue";
 import PresetSelector from "./components/PresetSelector.vue";
-import PresetShare from "./components/PresetShare.vue";
 import TemperatureSelector from "./components/TemperatureSelector.vue";
 import TopPSelector from "./components/TopPSelector.vue";
 
+// import { Switch } from '@/components/ui/switch'
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -25,6 +23,7 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
 import Record from "./components/Record.vue";
 import machine from "./machine";
 import { useMachine } from "@xstate/vue";
+import PromptEditor from "./components/PromptEditor.vue";
 
 const localStorageSnapshotJson = localStorage.getItem("snapshot");
 const localStorageSnapshot = localStorageSnapshotJson
@@ -62,18 +61,16 @@ function handleInput(value: string | number) {
     />
   </div>
 
-  <div class="flex-col hidden h-full md:flex">
-    <div
-      class="container flex flex-col items-start justify-between py-4 space-y-2 sm:flex-row sm:items-center sm:space-y-0 md:h-16"
-    >
-      <h2 class="text-lg font-semibold">Playground</h2>
-      <div class="flex w-full ml-auto space-x-2 sm:justify-end">
+  <div class="flex-col h-full md:flex">
+    <div class="flex flex-row items-center justify-between px-4 py-2">
+      <h2 class="text-lg font-semibold">Moon Prompt Dev Studio</h2>
+      <div class="flex space-x-2 sm:justify-end">
         <PresetSelector presets="{presets}" />
-        <PresetSave />
-        <div class="hidden space-x-2 md:flex">
-          <CodeViewer />
+        <!-- <div class="hidden space-x-2 sm:flex">
+          <PresetSave />
+          <CodeViewer />  
           <PresetShare />
-        </div>
+        </div> -->
         <PresetActions />
       </div>
     </div>
@@ -308,28 +305,47 @@ function handleInput(value: string | number) {
               </div>
             </TabsContent>
             <TabsContent value="insert" class="p-0 mt-0 space-y-2 border-0">
-              <div class="flex flex-row space-x-2">
-                <Button @click="send({ type: 'user.submit' })">Submit</Button>
-                <Button @click="send({ type: 'user.result.delete.all' })"
-                  >Clear</Button
-                >
-              </div>
+              <div class="flex flex-row space-x-2"></div>
               <div class="flex flex-col space-y-4">
-                <div class="flex h-full">
-                  <div class="grid w-1/2 h-full grid-rows-1 gap-6">
-                    <Textarea
-                      @update:model-value="handleInput"
+                <div class="flex h-full space-x-2">
+                  <div class="grid w-1/2 h-full grid-rows-1 gap-2">
+                    <PromptEditor
                       :model-value="snapshot.context.prompt"
-                      placeholder="We're writing to [inset]. Congrats from OpenAI!"
-                      class="min-h-[300px]"
-                      :class="{
-                        'border-green-400': snapshot.matches({
+                      @update:model-value="
+                        send({ type: 'user.prompt.input', value: $event })
+                      "
+                      :system-start="'<|im_start|>system\n'"
+                      :system-end="'<|im_end|>'"
+                      :user-start="'<|im_start|>user\n'"
+                      :user-end="'<|im_end|>'"
+                      :assistant-start="'<|im_start|>assistant\n'"
+                      :assistant-end="'<|im_end|>'"
+
+                      :is-idle="
+                        snapshot.matches({
                           type: 'not typing',
-                        }),
-                      }"
-                    />
+                        })
+                      "
+                      :is-typing="
+                        snapshot.matches({
+                          type: 'typing',
+                        })
+                      "
+                      :is-waiting="
+                        snapshot.matches({
+                          type: 'waiting response',
+                        })
+                      "
+                      @submit="send({ type: 'user.submit' })"
+                    ></PromptEditor>
                   </div>
-                  <div class="grid w-1/2 h-full grid-rows-1 gap-6">
+                  <div class="grid w-1/2 h-full grid-rows-1 gap-2">
+                    <Button
+                      @click="send({ type: 'user.result.delete.all' })"
+                      class="w-fit"
+                    >
+                      Clear
+                    </Button>
                     <Record
                       v-for="(record, index) in snapshot.context.records"
                       :record="record"

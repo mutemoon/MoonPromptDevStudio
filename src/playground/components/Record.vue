@@ -2,7 +2,7 @@
   <Card class="w-full">
     <CardHeader class="flex flex-row items-center justify-between">
       <Badge>{{ new Date(record.createTime).toLocaleString() }}</Badge>
-      <Button variant="outline" size="icon" @click="$emit('delete', record)">
+      <Button variant="link" size="icon" @click="$emit('delete', record)">
         <XIcon></XIcon>
       </Button>
     </CardHeader>
@@ -25,7 +25,7 @@
         >{{ record.output }}</pre
       >
     </CardContent>
-    <CardFooter>
+    <CardFooter class="space-x-2">
       <Badge>temperature: {{ record.temperatue }}</Badge>
       <Badge>max_tokens: {{ record.max_tokens }}</Badge>
       <Badge>top_p: {{ record.top_p }}</Badge>
