@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { SliderRootProps } from 'radix-vue'
-import { ref } from 'vue'
 import {
   HoverCard,
   HoverCardContent,
@@ -9,11 +7,11 @@ import {
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 
-const props = defineProps<{
-  defaultValue: SliderRootProps['defaultValue']
-}>()
+defineProps<{
+  modelValue: number[] | undefined;
+}>();
 
-const value = ref(props.defaultValue)
+defineEmits(["update:model-value"]);
 </script>
 
 <template>
@@ -24,12 +22,13 @@ const value = ref(props.defaultValue)
           <div class="flex items-center justify-between">
             <Label for="maxlength">Maximum Length</Label>
             <span class="w-12 rounded-md border border-transparent px-2 py-0.5 text-right text-sm text-muted-foreground hover:border-border">
-              {{ value?.[0] }}
+              {{ modelValue?.[0] }}
             </span>
           </div>
           <Slider
             id="maxlength"
-            v-model="value"
+            :model-value="modelValue"
+            @update:model-value="$emit('update:model-value', $event)"
             :max="4000"
             :step="10"
             class="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4"

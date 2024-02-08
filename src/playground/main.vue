@@ -21,6 +21,31 @@ import {
 } from "@/components/ui/hover-card";
 
 import { CounterClockwiseClockIcon } from "@radix-icons/vue";
+
+import Record from "./components/Record.vue";
+import machine from "./machine";
+import { useMachine } from "@xstate/vue";
+
+const localStorageSnapshotJson = localStorage.getItem("snapshot");
+const localStorageSnapshot = localStorageSnapshotJson
+  ? JSON.parse(localStorageSnapshotJson)
+  : undefined;
+
+console.log(localStorageSnapshot?.value);
+
+const { send, snapshot, actorRef } = useMachine(machine, {
+  snapshot: localStorageSnapshot,
+});
+
+actorRef.subscribe((snapshot) => {
+  const snapshotCanJSON: any = snapshot.toJSON();
+  snapshotCanJSON.value = { type: "not typing" };
+  localStorage.setItem("snapshot", JSON.stringify(snapshotCanJSON));
+});
+
+function handleInput(value: string | number) {
+  send({ type: "user.prompt.input", value: `${value}` });
+}
 </script>
 
 <template>
@@ -37,12 +62,12 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
     />
   </div>
 
-  <div class="hidden h-full flex-col md:flex">
+  <div class="flex-col hidden h-full md:flex">
     <div
-      class="container flex flex-col items-start justify-between space-y-2 py-4 sm:flex-row sm:items-center sm:space-y-0 md:h-16"
+      class="container flex flex-col items-start justify-between py-4 space-y-2 sm:flex-row sm:items-center sm:space-y-0 md:h-16"
     >
       <h2 class="text-lg font-semibold">Playground</h2>
-      <div class="ml-auto flex w-full space-x-2 sm:justify-end">
+      <div class="flex w-full ml-auto space-x-2 sm:justify-end">
         <PresetSelector presets="{presets}" />
         <PresetSave />
         <div class="hidden space-x-2 md:flex">
@@ -53,12 +78,12 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
       </div>
     </div>
     <Separator />
-    <Tabs default-value="complete" class="flex-1">
+    <Tabs default-value="insert" class="flex-1">
       <div class="container h-full py-6">
         <div
           class="grid h-full items-stretch gap-6 md:grid-cols-[minmax(0,1fr)_200px]"
         >
-          <div class="hidden flex-col space-y-4 sm:flex md:order-2">
+          <div class="flex-col hidden space-y-4 sm:flex md:order-2">
             <div class="grid gap-2">
               <HoverCard :open-delay="200">
                 <HoverCardTrigger as-child>
@@ -82,7 +107,7 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="none"
-                    class="h-5 w-5"
+                    class="w-5 h-5"
                   >
                     <rect
                       x="4"
@@ -148,7 +173,7 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="none"
-                    class="h-5 w-5"
+                    class="w-5 h-5"
                   >
                     <path
                       fillRule="evenodd"
@@ -188,7 +213,7 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="none"
-                    class="h-5 w-5"
+                    class="w-5 h-5"
                   >
                     <rect
                       x="4"
@@ -238,15 +263,38 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                 </TabsTrigger>
               </TabsList>
             </div>
-            <ModelSelector />
-            <TemperatureSelector :default-value="[0.56]" />
-            <MaxLengthSelector :default-value="[256]" />
-            <TopPSelector :default-value="[0.9]" />
+            <ModelSelector
+              :model-value="snapshot.context.selectedModel"
+              @update:model-value="
+                send({ type: 'user.config.set', selectedModel: $event })
+              "
+              :models="snapshot.context.models"
+            />
+            <TemperatureSelector
+              :model-value="[snapshot.context.temperature]"
+              @update:model-value="
+                send({ type: 'user.config.set', temperature: $event[0] })
+              "
+            />
+            <MaxLengthSelector
+              :model-value="[snapshot.context.max_tokens]"
+              @update:model-value="
+                send({ type: 'user.config.set', max_tokens: $event[0] })
+              "
+            />
+            <TopPSelector
+              :model-value="[snapshot.context.top_p]"
+              @update:model-value="
+                send({ type: 'user.config.set', top_p: $event[0] })
+              "
+            />
           </div>
           <div class="md:order-1">
-            <TabsContent value="complete" class="mt-0 border-0 p-0">
-              <div class="flex h-full flex-col space-y-4">
+            <TabsContent value="complete" class="p-0 mt-0 border-0">
+              <div class="flex flex-col h-full space-y-4">
                 <Textarea
+                  @update:model-value="handleInput"
+                  :model-value="snapshot.context.prompt"
                   placeholder="Write a tagline for an ice cream shop"
                   class="min-h-[400px] flex-1 p-4 md:min-h-[700px] lg:min-h-[700px]"
                 />
@@ -254,36 +302,54 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                   <Button>Submit</Button>
                   <Button variant="secondary">
                     <span class="sr-only">Show history</span>
-                    <CounterClockwiseClockIcon class="h-4 w-4" />
+                    <CounterClockwiseClockIcon class="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </TabsContent>
-            <TabsContent value="insert" class="mt-0 border-0 p-0">
-              <div class="flex flex-col space-y-4">
-                <div
-                  class="grid h-full grid-rows-2 gap-6 lg:grid-cols-2 lg:grid-rows-1"
+            <TabsContent value="insert" class="p-0 mt-0 space-y-2 border-0">
+              <div class="flex flex-row space-x-2">
+                <Button @click="send({ type: 'user.submit' })">Submit</Button>
+                <Button @click="send({ type: 'user.result.delete.all' })"
+                  >Clear</Button
                 >
-                  <Textarea
-                    placeholder="We're writing to [inset]. Congrats from OpenAI!"
-                    class="h-full min-h-[300px] lg:min-h-[700px] xl:min-h-[700px]"
-                  />
-                  <div class="rounded-md border bg-muted" />
+              </div>
+              <div class="flex flex-col space-y-4">
+                <div class="flex h-full">
+                  <div class="grid w-1/2 h-full grid-rows-1 gap-6">
+                    <Textarea
+                      @update:model-value="handleInput"
+                      :model-value="snapshot.context.prompt"
+                      placeholder="We're writing to [inset]. Congrats from OpenAI!"
+                      class="min-h-[300px]"
+                      :class="{
+                        'border-green-400': snapshot.matches({
+                          type: 'not typing',
+                        }),
+                      }"
+                    />
+                  </div>
+                  <div class="grid w-1/2 h-full grid-rows-1 gap-6">
+                    <Record
+                      v-for="(record, index) in snapshot.context.records"
+                      :record="record"
+                      @delete="send({ type: 'user.result.delete', index })"
+                    ></Record>
+                  </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <Button>Submit</Button>
+                <!-- <div class="flex items-center space-x-2">
                   <Button variant="secondary">
                     <span class="sr-only">Show history</span>
-                    <CounterClockwiseClockIcon class="h-4 w-4" />
+                    <CounterClockwiseClockIcon class="w-4 h-4" />
                   </Button>
-                </div>
+                </div> -->
               </div>
             </TabsContent>
-            <TabsContent value="edit" class="mt-0 border-0 p-0">
+            <TabsContent value="edit" class="p-0 mt-0 border-0">
               <div class="flex flex-col space-y-4">
                 <div class="grid h-full gap-6 lg:grid-cols-2">
                   <div class="flex flex-col space-y-4">
-                    <div class="flex flex-1 flex-col space-y-2">
+                    <div class="flex flex-col flex-1 space-y-2">
                       <Label for="input">Input</Label>
                       <Textarea
                         id="input"
@@ -307,7 +373,7 @@ import { CounterClockwiseClockIcon } from "@radix-icons/vue";
                   <Button>Submit</Button>
                   <Button variant="secondary">
                     <span class="sr-only">Show history</span>
-                    <CounterClockwiseClockIcon class="h-4 w-4" />
+                    <CounterClockwiseClockIcon class="w-4 h-4" />
                   </Button>
                 </div>
               </div>

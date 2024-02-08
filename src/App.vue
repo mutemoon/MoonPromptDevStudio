@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Example from "./pages/Example.vue";
+import Main from "./playground/main.vue";
 </script>
 
 <template>
-  <Example></Example>
+  <Main></Main>
 </template>
