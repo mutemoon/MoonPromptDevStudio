@@ -1,4 +1,4 @@
-import { assign, fromCallback, fromPromise, setup } from "xstate";
+import { assign, fromPromise, setup } from "xstate";
 import { OpenAI } from "openai";
 import { produce } from "immer";
 
