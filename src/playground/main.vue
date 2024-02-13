@@ -21,7 +21,7 @@ import {
 import { CounterClockwiseClockIcon } from "@radix-icons/vue";
 
 import Record from "./components/Record.vue";
-import machine from "./machine";
+import machine, { client } from "./machine";
 import { useMachine } from "@xstate/vue";
 import PromptEditor from "./components/PromptEditor.vue";
 
@@ -34,6 +34,15 @@ console.log(localStorageSnapshot?.value);
 
 const { send, snapshot, actorRef } = useMachine(machine, {
   snapshot: localStorageSnapshot,
+});
+
+client.models.list().then((models) => {
+  const modelNames = models.data.map((v) => v.id);
+  send({
+    type: "user.config.set",
+    models: modelNames,
+    selectedModel: modelNames[0],
+  });
 });
 
 actorRef.subscribe((snapshot) => {
@@ -320,7 +329,8 @@ function handleInput(value: string | number) {
                       :user-end="'<|im_end|>'"
                       :assistant-start="'<|im_start|>assistant\n'"
                       :assistant-end="'<|im_end|>'"
-
+                      :action-response-start="'<|im_start|>action response\n'"
+                      :action-response-end="'<|im_end|>'"
                       :is-idle="
                         snapshot.matches({
                           type: 'not typing',

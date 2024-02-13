@@ -3,7 +3,7 @@
     <CardHeader class="flex flex-row items-center justify-between">
       <Badge>{{ new Date(record.createTime).toLocaleString() }}</Badge>
       <Button variant="link" size="icon" @click="$emit('delete', record)">
-        <XIcon></XIcon>
+        <XIcon :size="16"></XIcon>
       </Button>
     </CardHeader>
     <CardContent class="space-y-2">

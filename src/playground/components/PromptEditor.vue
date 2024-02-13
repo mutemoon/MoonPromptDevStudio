@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ref, watch } from "vue";
+import { PlusCircledIcon } from "@radix-icons/vue";
+import { Badge } from "@/components/ui/badge";
+import { XIcon } from "lucide-vue-next";
 
 const props = defineProps<{
   modelValue: string;
@@ -20,38 +23,56 @@ const props = defineProps<{
 
   assistantStart: string;
   assistantEnd: string;
+
+  actionResponseStart: string;
+  actionResponseEnd: string;
 }>();
 
 const emit = defineEmits<{
   submit: [];
   "update:model-value": [value: string];
 }>();
-type TMessage = { role: "system" | "user" | "assistant"; content: string };
+
+type TMessage = {
+  role: "system" | "user" | "assistant" | "action response";
+  content: string;
+};
+
 const messages = ref<Array<TMessage>>([]);
+
 function escapeRegExp(str: string) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function extractMessages(value: string) {
-  const messageTypes = [
-    { role: "system", start: props.systemStart, end: props.systemEnd },
-    { role: "user", start: props.userStart, end: props.userEnd },
-    { role: "assistant", start: props.assistantStart, end: props.assistantEnd },
-  ] as const;
-
   const tmpMsgs: TMessage[] = [];
 
-  messageTypes.forEach(({ role, start, end }) => {
-    const regex = new RegExp(`${escapeRegExp(start)}([\\s\\S]*?)${escapeRegExp(end)}`, "g");
-    let match;
-    while ((match = regex.exec(value))) {
-      tmpMsgs.push({
-        role,
-        content: match[1],
-      });
-    }
-  });
-
+  const regex = new RegExp(
+    `(${escapeRegExp(props.systemStart)}|${escapeRegExp(
+      props.userStart
+    )}|${escapeRegExp(props.assistantStart)}|${escapeRegExp(
+      props.actionResponseStart
+    )})([\\s\\S]*?)(${escapeRegExp(props.systemEnd)}|${escapeRegExp(
+      props.userEnd
+    )}|${escapeRegExp(props.assistantEnd)}|${escapeRegExp(
+      props.actionResponseEnd
+    )})`,
+    "g"
+  );
+  let match;
+  while ((match = regex.exec(value))) {
+    tmpMsgs.push({
+      role:
+        match[1] === props.systemStart
+          ? "system"
+          : match[1] === props.userStart
+          ? "user"
+          : match[1] === props.assistantStart
+          ? "assistant"
+          : "action response",
+      content: match[2],
+    });
+  }
   return tmpMsgs;
 }
 
@@ -59,6 +80,9 @@ watch(
   () => props.modelValue,
   (value) => {
     messages.value = extractMessages(value);
+  },
+  {
+    immediate: true,
   }
 );
 
@@ -72,14 +96,18 @@ watch(
         return `${props.userStart}${message.content}${props.userEnd}`;
       } else if (message.role === "assistant") {
         return `${props.assistantStart}${message.content}${props.assistantEnd}`;
+      } else if (message.role === "action response") {
+        return `${props.actionResponseStart}${message.content}${props.actionResponseEnd}`;
       }
     });
-    emit("update:model-value", transform.join(""));
+    let value = transform.join("\n") + props.assistantStart;
+    emit("update:model-value", value);
   },
   {
     deep: true,
   }
 );
+
 </script>
 
 <template>
@@ -111,18 +139,52 @@ watch(
         }"
       />
     </TabsContent>
-    <TabsContent value="chat">
-      <div v-for="message in messages">
-        <template v-if="message.role === 'system'">
+    <TabsContent value="chat" class="space-y-2">
+      <div v-for="(message, index) in messages" :key="index">
+        <!-- <template v-if="message.role === 'system'">
           <Textarea v-model="message.content"></Textarea>
         </template>
         <template v-if="message.role === 'user'">
           <Textarea v-model="message.content"></Textarea>
         </template>
         <template v-if="message.role === 'assistant'">
-          <Textarea v-model="message.content"></Textarea>
-        </template>
+        </template> -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span>{{ index + 1 }}</span>
+            <Badge>{{ message.role }}</Badge>
+          </div>
+          <Button
+            variant="link"
+            @click="messages.splice(messages.indexOf(message), 1)"
+          >
+            <XIcon :size="12" />
+          </Button>
+        </div>
+        <Textarea
+          v-model="message.content"
+        ></Textarea>
       </div>
+      <Button
+        variant="outline"
+        @click="messages.push({ role: 'system', content: '' })"
+        ><PlusCircledIcon class="mx-1" />System Message</Button
+      >
+      <Button
+        variant="outline"
+        @click="messages.push({ role: 'user', content: '' })"
+        ><PlusCircledIcon class="mx-1" />User Message</Button
+      >
+      <Button
+        variant="outline"
+        @click="messages.push({ role: 'assistant', content: '' })"
+        ><PlusCircledIcon class="mx-1" />Assistant Message</Button
+      >
+      <Button
+        variant="outline"
+        @click="messages.push({ role: 'action response', content: '' })"
+        ><PlusCircledIcon class="mx-1" />Action Response</Button
+      >
     </TabsContent>
   </Tabs>
 </template>

@@ -1,8 +1,8 @@
-import { assign, fromPromise, setup } from "xstate";
+import { assign, enqueueActions, fromPromise, setup } from "xstate";
 import { OpenAI } from "openai";
 import { produce } from "immer";
 
-const client = new OpenAI({
+export const client = new OpenAI({
   baseURL: "http://47.116.115.158:9098/v1",
   apiKey: "YOUR_API_KEY",
   dangerouslyAllowBrowser: true,
@@ -20,14 +20,14 @@ export type TRecord = {
 };
 
 type IConfig = {
+  models: string[];
+  selectedModel: string;
   temperature: number;
   max_tokens: number;
   top_p: number;
-  selectedModel: string;
 };
 
 type IContext = {
-  models: string[];
   prompt: string;
   records: TRecord[];
 } & IConfig;
@@ -50,6 +50,7 @@ export default setup({
   },
   actors: {
     chat: fromPromise<TRecord, IContext>(async ({ input }) => {
+      const models = await client.models.list()
       const startTime = Date.now();
       const res = await client.completions.create({
         model: input.selectedModel,
@@ -112,6 +113,7 @@ export default setup({
           draft.max_tokens = event.max_tokens ?? context.max_tokens;
           draft.top_p = event.top_p ?? context.top_p;
           draft.selectedModel = event.selectedModel ?? context.selectedModel;
+          draft.models = event.models ?? context.models;
         })
       ),
     },
