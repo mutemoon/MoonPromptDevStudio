@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
 defineProps<{
-  modelValue: number[] | undefined;
+  modelValue: number;
 }>();
 
 defineEmits(["update:model-value"]);
@@ -24,13 +24,13 @@ defineEmits(["update:model-value"]);
             <span
               class="w-12 rounded-md border border-transparent px-2 py-0.5 text-right text-sm text-muted-foreground hover:border-border"
             >
-              {{ modelValue?.[0] }}
+              {{ modelValue }}
             </span>
           </div>
           <Slider
             id="temperature"
-            :model-value="modelValue"
-            @update:model-value="$emit('update:model-value', $event)"
+            :model-value="[modelValue]"
+            @update:model-value="$emit('update:model-value', $event?.[0])"
             :max="1"
             :step="0.1"
             class="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4"

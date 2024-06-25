@@ -3,12 +3,12 @@ import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from '@/components/ui/hover-card'
-import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
+} from "@/components/ui/hover-card";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 defineProps<{
-  modelValue: number[] | undefined;
+  modelValue: number;
 }>();
 
 defineEmits(["update:model-value"]);
@@ -21,14 +21,16 @@ defineEmits(["update:model-value"]);
         <div class="grid gap-4">
           <div class="flex items-center justify-between">
             <Label for="maxlength">Maximum Length</Label>
-            <span class="w-12 rounded-md border border-transparent px-2 py-0.5 text-right text-sm text-muted-foreground hover:border-border">
-              {{ modelValue?.[0] }}
+            <span
+              class="w-12 rounded-md border border-transparent px-2 py-0.5 text-right text-sm text-muted-foreground hover:border-border"
+            >
+              {{ modelValue }}
             </span>
           </div>
           <Slider
             id="maxlength"
-            :model-value="modelValue"
-            @update:model-value="$emit('update:model-value', $event)"
+            :model-value="[modelValue]"
+            @update:model-value="$emit('update:model-value', $event?.[0])"
             :max="4000"
             :step="10"
             class="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
@@ -36,11 +38,7 @@ defineEmits(["update:model-value"]);
           />
         </div>
       </HoverCardTrigger>
-      <HoverCardContent
-        align="start"
-        class="w-[260px] text-sm"
-        side="left"
-      >
+      <HoverCardContent align="start" class="w-[260px] text-sm" side="left">
         The maximum number of tokens to generate. Requests can use up to 2,048
         or 4,000 tokens, shared between prompt and completion. The exact limit
         varies by model.

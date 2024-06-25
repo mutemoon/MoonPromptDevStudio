@@ -1,59 +1,29 @@
 <script setup lang="ts">
-import MaxLengthSelector from "./components/MaxLengthSelector.vue";
-import ModelSelector from "./components/ModelSelector.vue";
-import PresetActions from "./components/PresetActions.vue";
-import PresetSelector from "./components/PresetSelector.vue";
-import TemperatureSelector from "./components/TemperatureSelector.vue";
-import TopPSelector from "./components/TopPSelector.vue";
-
-// import { Switch } from '@/components/ui/switch'
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { CounterClockwiseClockIcon } from "@radix-icons/vue";
-
-import Record from "./components/Record.vue";
-import machine, { client } from "./machine";
-import { useMachine } from "@xstate/vue";
+import { storeToRefs } from "pinia";
+import MaxLengthSelector from "./components/MaxLengthSelector.vue";
+import ModelSelector from "./components/ModelSelector.vue";
+import PresetActions from "./components/PresetActions.vue";
+import PresetSelector from "./components/PresetSelector.vue";
 import PromptEditor from "./components/PromptEditor.vue";
+import Record from "./components/Record.vue";
+import TemperatureSelector from "./components/TemperatureSelector.vue";
+import TopPSelector from "./components/TopPSelector.vue";
+import { usePlayground } from "./store";
 
-const localStorageSnapshotJson = localStorage.getItem("snapshot");
-const localStorageSnapshot = localStorageSnapshotJson
-  ? JSON.parse(localStorageSnapshotJson)
-  : undefined;
-
-console.log(localStorageSnapshot?.value);
-
-const { send, snapshot, actorRef } = useMachine(machine, {
-  snapshot: localStorageSnapshot,
-});
-
-client.models.list().then((models) => {
-  const modelNames = models.data.map((v) => v.id);
-  send({
-    type: "user.config.set",
-    models: modelNames,
-    selectedModel: modelNames[0],
-  });
-});
-
-actorRef.subscribe((snapshot) => {
-  const snapshotCanJSON: any = snapshot.toJSON();
-  snapshotCanJSON.value = { type: "not typing" };
-  localStorage.setItem("snapshot", JSON.stringify(snapshotCanJSON));
-});
-
-function handleInput(value: string | number) {
-  send({ type: "user.prompt.input", value: `${value}` });
-}
+const playground = usePlayground();
+const { currentModel, records, temperature, max_tokens, top_p } =
+  storeToRefs(playground);
 </script>
 
 <template>
@@ -269,38 +239,15 @@ function handleInput(value: string | number) {
                 </TabsTrigger>
               </TabsList>
             </div>
-            <ModelSelector
-              :model-value="snapshot.context.selectedModel"
-              @update:model-value="
-                send({ type: 'user.config.set', selectedModel: $event })
-              "
-              :models="snapshot.context.models"
-            />
-            <TemperatureSelector
-              :model-value="[snapshot.context.temperature]"
-              @update:model-value="
-                send({ type: 'user.config.set', temperature: $event[0] })
-              "
-            />
-            <MaxLengthSelector
-              :model-value="[snapshot.context.max_tokens]"
-              @update:model-value="
-                send({ type: 'user.config.set', max_tokens: $event[0] })
-              "
-            />
-            <TopPSelector
-              :model-value="[snapshot.context.top_p]"
-              @update:model-value="
-                send({ type: 'user.config.set', top_p: $event[0] })
-              "
-            />
+            <ModelSelector v-model="currentModel" :models="playground.models" />
+            <TemperatureSelector v-model="temperature" />
+            <MaxLengthSelector v-model="max_tokens" />
+            <TopPSelector v-model="top_p" />
           </div>
           <div class="md:order-1">
             <TabsContent value="complete" class="p-0 mt-0 border-0">
               <div class="flex flex-col h-full space-y-4">
                 <Textarea
-                  @update:model-value="handleInput"
-                  :model-value="snapshot.context.prompt"
                   placeholder="Write a tagline for an ice cream shop"
                   class="min-h-[400px] flex-1 p-4 md:min-h-[700px] lg:min-h-[700px]"
                 />
@@ -316,50 +263,18 @@ function handleInput(value: string | number) {
             <TabsContent value="insert" class="p-0 mt-0 space-y-2 border-0">
               <div class="flex flex-row space-x-2"></div>
               <div class="flex flex-col space-y-4">
-                <div class="flex h-full space-x-2">
+                <div class="flex items-end h-full space-x-2">
                   <div class="grid w-1/2 h-full grid-rows-1 gap-2">
-                    <PromptEditor
-                      :model-value="snapshot.context.prompt"
-                      @update:model-value="
-                        send({ type: 'user.prompt.input', value: $event })
-                      "
-                      :system-start="'<|im_start|>system\n'"
-                      :system-end="'<|im_end|>'"
-                      :user-start="'<|im_start|>user\n'"
-                      :user-end="'<|im_end|>'"
-                      :assistant-start="'<|im_start|>assistant\n'"
-                      :assistant-end="'<|im_end|>'"
-                      :action-response-start="'<|im_start|>action response\n'"
-                      :action-response-end="'<|im_end|>'"
-                      :is-idle="
-                        snapshot.matches({
-                          type: 'not typing',
-                        })
-                      "
-                      :is-typing="
-                        snapshot.matches({
-                          type: 'typing',
-                        })
-                      "
-                      :is-waiting="
-                        snapshot.matches({
-                          type: 'waiting response',
-                        })
-                      "
-                      @submit="send({ type: 'user.submit' })"
-                    ></PromptEditor>
+                    <PromptEditor></PromptEditor>
                   </div>
                   <div class="grid w-1/2 h-full grid-rows-1 gap-2">
-                    <Button
-                      @click="send({ type: 'user.result.delete.all' })"
-                      class="w-fit"
-                    >
+                    <Button @click="playground.clearRecords()" class="w-fit">
                       Clear
                     </Button>
                     <Record
-                      v-for="(record, index) in snapshot.context.records"
+                      v-for="(record, index) in records"
                       :record="record"
-                      @delete="send({ type: 'user.result.delete', index })"
+                      @delete="playground.deleteRecord(index)"
                     ></Record>
                   </div>
                 </div>

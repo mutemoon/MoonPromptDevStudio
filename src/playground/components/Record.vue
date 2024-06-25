@@ -12,9 +12,10 @@
           <AccordionTrigger>Prompt</AccordionTrigger>
           <AccordionContent>
             <pre
+              v-for="message in record.messages"
               class="p-3 rounded-md bg-secondary text-wrap"
               style="overflow-wrap: anywhere"
-              >{{ record.prompt }}</pre
+              >{{ message.content }}</pre
             >
           </AccordionContent>
         </AccordionItem>
@@ -22,11 +23,11 @@
       <pre
         class="p-3 rounded-md bg-foreground text-background text-wrap"
         style="overflow-wrap: anywhere"
-        >{{ record.output }}</pre
+        >{{ record.messages.at(-1)?.content }}</pre
       >
     </CardContent>
     <CardFooter class="space-x-2">
-      <Badge>temperature: {{ record.temperatue }}</Badge>
+      <Badge>temperature: {{ record.temperature }}</Badge>
       <Badge>max_tokens: {{ record.max_tokens }}</Badge>
       <Badge>top_p: {{ record.top_p }}</Badge>
     </CardFooter>
@@ -43,7 +44,7 @@ import {
 import { XIcon } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TRecord } from "../machine";
+import { Record } from "../store";
 import {
   Accordion,
   AccordionContent,
@@ -52,7 +53,5 @@ import {
 } from "@/components/ui/accordion";
 
 defineEmits(["delete"]);
-defineProps<{ record: TRecord }>();
+defineProps<{ record: Record }>();
 </script>
-
-<style></style>
